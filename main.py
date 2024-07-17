@@ -27,15 +27,21 @@ MODEL_URLS = {
     # Add more models as needed
 }
 
-IMAGE_MODELS = {"Imagineo-4K",
-                "stable-diffusion-3-medium"}  # Add all image model keys here
+# Define custom names for models
+CUSTOM_MODEL_NAMES = {
+    "Imagineo-4K": "Photorealism",
+    "stable-diffusion-3-medium": "Base SD Medium",
+    # Add more custom names as needed
+}
 
+IMAGE_MODELS = {"Imagineo-4K", "stable-diffusion-3-medium"}  # Add all image model keys here
 
 # Initialize the Telegram bot
 class GradioTelegramBot:
 
-    def __init__(self, model_urls, telegram_token):
+    def __init__(self, model_urls, custom_model_names, telegram_token):
         self.model_urls = model_urls
+        self.custom_model_names = custom_model_names
         self.current_model_key = "Imagineo-4K"  # Default model key
         self.clients = {
             key: Client(info["url"])
@@ -75,8 +81,7 @@ class GradioTelegramBot:
             if self.current_model_key == "Imagineo-4K":
                 result = current_client.predict(
                     prompt=prompt,
-                    negative_prompt=
-                    "(deformed, distorted, disfigured:1.3), poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, (mutated hands and fingers:1.4), disconnected limbs, mutation, mutated, ugly, disgusting, blurry, amputation",
+                    negative_prompt="(deformed, distorted, disfigured:1.3), poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, (mutated hands and fingers:1.4), disconnected limbs, mutation, mutated, ugly, disgusting, blurry, amputation",
                     use_negative_prompt=True,
                     style="3840 x 2160",
                     collage_style="Hi-Res",
@@ -87,47 +92,42 @@ class GradioTelegramBot:
                     height=1024,
                     guidance_scale=6,
                     randomize_seed=True,
-                    api_name=current_model_info["api_name"])
+                    api_name=current_model_info["api_name"]
+                )
             elif self.current_model_key == "stable-diffusion-3-medium":
                 result = current_client.predict(
                     prompt=prompt,
-                    negative_prompt=
-                    "(deformed, distorted, disfigured:1.3), poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, (mutated hands and fingers:1.4), disconnected limbs, mutation, mutated, ugly, disgusting, blurry, amputation",
+                    negative_prompt="(deformed, distorted, disfigured:1.3), poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, (mutated hands and fingers:1.4), disconnected limbs, mutation, mutated, ugly, disgusting, blurry, amputation",
                     seed=0,
                     randomize_seed=True,
                     width=1024,
                     height=1024,
                     guidance_scale=5,
                     num_inference_steps=28,
-                    api_name=current_model_info["api_name"])
+                    api_name=current_model_info["api_name"]
+                )
             else:
-                raise ValueError(
-                    f"Unsupported model: {self.current_model_key}")
+                raise ValueError(f"Unsupported model: {self.current_model_key}")
 
             # Process the result based on the model
             if self.current_model_key == "Imagineo-4K":
                 if isinstance(result, tuple) and len(result) > 0:
                     images = result[0]
-                    if images and isinstance(
-                            images,
-                            list) and len(images) > 0 and 'image' in images[0]:
+                    if images and isinstance(images, list) and len(images) > 0 and 'image' in images[0]:
                         return images[0]['image']
             elif self.current_model_key == "stable-diffusion-3-medium":
                 if isinstance(result, (list, tuple)) and len(result) > 0:
                     if isinstance(result[0], bytes):
-                        with tempfile.NamedTemporaryFile(
-                                delete=False, suffix=".png") as temp_file:
+                        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as temp_file:
                             temp_file.write(result[0])
                             return temp_file.name
                     elif isinstance(result[0], str):
                         return result[0]
                 else:
-                    logger.error(
-                        "Unexpected result structure for stable-diffusion-3-medium"
-                    )
+                    logger.error("Unexpected result structure for stable-diffusion-3-medium")
                     return None
 
-            raise ValueError("Invalid response from Gradio API")
+            raise ValueError("Invalid response from API")
 
         except Exception as e:
             logger.error(f"Error generating image: {str(e)}")
@@ -135,8 +135,7 @@ class GradioTelegramBot:
 
     def handle_commands(self, message):
         chat_id = message.chat.id
-        command = message.text.split()[0][
-            1:]  # Get the command without the '/'
+        command = message.text.split()[0][1:]  # Get the command without the '/'
 
         if command == "start":
             response = (
@@ -167,29 +166,23 @@ class GradioTelegramBot:
 
     def show_model_selection(self, chat_id):
         markup = InlineKeyboardMarkup()
-        for model_name in self.model_urls.keys():
+        for model_key, custom_name in self.custom_model_names.items():
             markup.add(
-                InlineKeyboardButton(
-                    model_name, callback_data=f"switch_model_{model_name}"))
-        self.bot.send_message(chat_id,
-                              "Select a model to switch:",
-                              reply_markup=markup)
+                InlineKeyboardButton(custom_name, callback_data=f"switch_model_{model_key}")
+            )
+        self.bot.send_message(chat_id, "Select a model to switch:", reply_markup=markup)
 
     def handle_callback_query(self, call):
         if call.data.startswith("switch_model_"):
             model_key = call.data[len("switch_model_"):]
             if model_key in self.model_urls:
                 self.current_model_key = model_key
-                self.bot.answer_callback_query(
-                    call.id, f"Switched to model: {model_key}")
-                self.bot.send_message(call.message.chat.id,
-                                      f"Switched to model: {model_key}")
+                custom_name = self.custom_model_names[model_key]
+                self.bot.answer_callback_query(call.id, f"Switched to model: {custom_name}")
+                self.bot.send_message(call.message.chat.id, f"Switched to model: {custom_name}")
             else:
-                self.bot.answer_callback_query(call.id,
-                                               "Model not recognized.")
-        self.bot.edit_message_reply_markup(call.message.chat.id,
-                                           call.message.message_id,
-                                           reply_markup=None)
+                self.bot.answer_callback_query(call.id, "Model not recognized.")
+        self.bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
 
     def on_message(self, message):
         chat_id = message.chat.id
@@ -199,8 +192,7 @@ class GradioTelegramBot:
             # In group chats, only respond to messages starting with '/'
             if message.text and message.text.startswith('/'):
                 if message.text.startswith('/generate '):
-                    prompt = message.text[
-                        10:]  # Remove '/generate ' from the start
+                    prompt = message.text[10:]  # Remove '/generate ' from the start
                     self.queue_request(chat_id, prompt, message.message_id)
                 else:
                     # Handle other commands if needed
@@ -218,16 +210,17 @@ class GradioTelegramBot:
         processing_message = self.bot.send_message(
             chat_id,
             "Your request has been queued. Please wait...",
-            reply_to_message_id=message_id)
+            reply_to_message_id=message_id
+        )
 
         # Add the request to the queue
         self.request_queue.put(
-            (chat_id, prompt, message_id, processing_message.message_id))
+            (chat_id, prompt, message_id, processing_message.message_id)
+        )
 
     def process_queue(self):
         while True:
-            chat_id, prompt, original_message_id, processing_message_id = self.request_queue.get(
-            )
+            chat_id, prompt, original_message_id, processing_message_id = self.request_queue.get()
 
             try:
                 if self.current_model_key in IMAGE_MODELS:
@@ -240,7 +233,8 @@ class GradioTelegramBot:
                             self.bot.send_photo(
                                 chat_id,
                                 image,
-                                reply_to_message_id=original_message_id)
+                                reply_to_message_id=original_message_id
+                            )
                         # If it's a temporary file, delete it after sending
                         if image_path.startswith(tempfile.gettempdir()):
                             os.remove(image_path)
@@ -248,18 +242,21 @@ class GradioTelegramBot:
                         self.bot.send_message(
                             chat_id,
                             "Sorry, I couldn't generate an image at the moment. Please try again later.",
-                            reply_to_message_id=original_message_id)
+                            reply_to_message_id=original_message_id
+                        )
                 else:
                     self.bot.send_message(
                         chat_id,
                         "Sorry, I couldn't generate a response.",
-                        reply_to_message_id=original_message_id)
+                        reply_to_message_id=original_message_id
+                    )
             except Exception as e:
                 logger.error(f"Error in process_queue: {str(e)}")
                 self.bot.send_message(
                     chat_id,
                     "I'm having trouble processing your request. Please try again later.",
-                    reply_to_message_id=original_message_id)
+                    reply_to_message_id=original_message_id
+                )
             finally:
                 # Delete the "Processing" message
                 self.bot.delete_message(chat_id, processing_message_id)
@@ -282,7 +279,7 @@ def main():
     if not telegram_token:
         raise ValueError("TELEGRAM_TOKEN environment variable not set")
 
-    bot = GradioTelegramBot(MODEL_URLS, telegram_token)
+    bot = GradioTelegramBot(MODEL_URLS, CUSTOM_MODEL_NAMES, telegram_token)
     bot.run()
 
 
