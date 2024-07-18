@@ -241,7 +241,7 @@ class GradioTelegramBot:
                     else:
                         self.bot.send_message(
                             chat_id,
-                            "Sorry, I couldn't generate an image at the moment. Please try again later.",
+                            "Sorry, I couldn't generate an image at the moment. You have exceeded your GPU Quota Please try again after 5 minutes. We are currently experiencing overload.",
                             reply_to_message_id=original_message_id
                         )
                 else:
