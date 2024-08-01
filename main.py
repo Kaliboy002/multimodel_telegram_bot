@@ -118,7 +118,7 @@ class GradioTelegramBot:
                 raise ValueError(f"Unsupported model: {self.current_model_key}")
 
             # Process the result based on the model
-            if self.current_model_key == "Imagineo-4K":
+            if self.current_model_key == "midjourney":
                 if isinstance(result, tuple) and len(result) > 0:
                     images = result[0]
                     if images and isinstance(images, list) and len(images) > 0 and 'image' in images[0]:
