@@ -95,7 +95,6 @@ class GradioTelegramBot:
                     negative_prompt="(deformed, distorted, disfigured:1.3), semi-realistic, cgi, 3d, render, sketch, cartoon, drawing, anime:1.4), poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, (mutated hands and fingers:1.4), disconnected limbs, mutation, mutated, ugly, disgusting, blurry, amputation",
                     use_negative_prompt=True,
                     style="2560 x 1440",
-                    grid_size="1x1",
                     seed=0,
                     width=1024,
                     height=1024,
