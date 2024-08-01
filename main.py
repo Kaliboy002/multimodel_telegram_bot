@@ -43,10 +43,7 @@ class GradioTelegramBot:
         self.model_urls = model_urls
         self.custom_model_names = custom_model_names
         self.current_model_key = "Imagineo-4K"  # Default model key
-        self.clients = {
-            key: Client(info["url"])
-            for key, info in model_urls.items()
-        }
+        self.clients = self.initialize_clients(model_urls)
         self.bot = telebot.TeleBot(telegram_token)
         self.request_queue = queue.Queue()
         self.worker_thread = threading.Thread(target=self.process_queue)
@@ -63,6 +60,16 @@ class GradioTelegramBot:
         # Set up the command menu
         self.setup_command_menu()
 
+    def initialize_clients(self, model_urls):
+        clients = {}
+        for key, info in model_urls.items():
+            try:
+                clients[key] = Client(info["url"])
+            except Exception as e:
+                logger.error(f"Failed to initialize Gradio client for {key}: {str(e)}")
+                clients[key] = None
+        return clients
+
     def setup_command_menu(self):
         commands = [
             BotCommand("start", "Start the bot"),
@@ -76,6 +83,10 @@ class GradioTelegramBot:
     def generate_image(self, prompt):
         current_client = self.clients[self.current_model_key]
         current_model_info = self.model_urls[self.current_model_key]
+
+        if not current_client:
+            logger.error(f"Client for model {self.current_model_key} is not available.")
+            return None
 
         try:
             if self.current_model_key == "Imagineo-4K":
@@ -241,7 +252,7 @@ class GradioTelegramBot:
                     else:
                         self.bot.send_message(
                             chat_id,
-                            "Sorry, I couldn't generate an image at the moment. You have exceeded your GPU Quota Please try again after 5 minutes. We are currently experiencing overload.",
+                            "Sorry, I couldn't generate an image at the moment. You have exceeded your GPU Quota Please try again after 5 minutes or use other models. We are currently experiencing overload. To see Other models list use /model command",
                             reply_to_message_id=original_message_id
                         )
                 else:
