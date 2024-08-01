@@ -16,8 +16,8 @@ logger = logging.getLogger(__name__)
 
 # Define the available Gradio model URLs with their API information
 MODEL_URLS = {
-    "Imagineo-4K": {
-        "url": "https://prithivmlmods-imagineo-4k.hf.space",
+    "midjourney": {
+        "url": "https://mukaist-midjourney.hf.space/",
         "api_name": "/run"
     },
     "stable-diffusion-3-medium": {
@@ -29,12 +29,12 @@ MODEL_URLS = {
 
 # Define custom names for models
 CUSTOM_MODEL_NAMES = {
-    "Imagineo-4K": "Photorealism",
+    "midjourney": "Photorealism",
     "stable-diffusion-3-medium": "Base SD Medium",
     # Add more custom names as needed
 }
 
-IMAGE_MODELS = {"Imagineo-4K", "stable-diffusion-3-medium"}  # Add all image model keys here
+IMAGE_MODELS = {"midjourney", "stable-diffusion-3-medium"}  # Add all image model keys here
 
 # Initialize the Telegram bot
 class GradioTelegramBot:
@@ -42,7 +42,7 @@ class GradioTelegramBot:
     def __init__(self, model_urls, custom_model_names, telegram_token):
         self.model_urls = model_urls
         self.custom_model_names = custom_model_names
-        self.current_model_key = "Imagineo-4K"  # Default model key
+        self.current_model_key = "midjourney"  # Default model key
         self.clients = self.initialize_clients(model_urls)
         self.bot = telebot.TeleBot(telegram_token)
         self.request_queue = queue.Queue()
@@ -89,14 +89,12 @@ class GradioTelegramBot:
             return None
 
         try:
-            if self.current_model_key == "Imagineo-4K":
+            if self.current_model_key == "midjourney":
                 result = current_client.predict(
                     prompt=prompt,
-                    negative_prompt="(deformed, distorted, disfigured:1.3), poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, (mutated hands and fingers:1.4), disconnected limbs, mutation, mutated, ugly, disgusting, blurry, amputation",
+                    negative_prompt="(deformed, distorted, disfigured:1.3), semi-realistic, cgi, 3d, render, sketch, cartoon, drawing, anime:1.4), poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, (mutated hands and fingers:1.4), disconnected limbs, mutation, mutated, ugly, disgusting, blurry, amputation",
                     use_negative_prompt=True,
-                    style="3840 x 2160",
-                    collage_style="Hi-Res",
-                    filter_name="Zero filter",
+                    style="2560 x 1440",
                     grid_size="1x1",
                     seed=0,
                     width=1024,
