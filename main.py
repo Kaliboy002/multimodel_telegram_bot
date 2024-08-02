@@ -10,6 +10,7 @@ from keep_alive import keep_alive
 from gradio_client import Client
 from telebot.types import BotCommand
 from telebot.apihelper import ApiTelegramException
+from requests.exceptions import ReadTimeout, ConnectionError
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
