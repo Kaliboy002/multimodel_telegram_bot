@@ -302,20 +302,7 @@ class GradioTelegramBot:
         self.bot.delete_webhook()
         keep_alive()
         logger.info("Starting bot polling...")
-        
-        while True:
-            try:
-                self.bot.polling(none_stop=True, interval=0, timeout=60)
-            except ApiTelegramException as e:
-                if e.error_code == 429:
-                    logger.warning(f"Rate limited. Waiting for {e.result.retry_after} seconds.")
-                    time.sleep(e.result.retry_after)
-                else:
-                    logger.error(f"Telegram API error: {e}")
-                    time.sleep(10)
-            except Exception as e:
-                logger.error(f"Unexpected error: {e}")
-                time.sleep(10)
+        self.bot.polling(none_stop=True, timeout=60)
 
 
 def main():
