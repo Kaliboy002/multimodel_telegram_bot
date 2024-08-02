@@ -17,6 +17,10 @@ logger = logging.getLogger(__name__)
 
 # Define the available Gradio model URLs with their API information
 MODEL_URLS = {
+    "FLUX.1-schnell": {
+        "url": "https://black-forest-labs-flux-1-schnell.hf.space",
+        "api_name": "/infer"
+    },
     "midjourney": {
         "url": "https://mukaist-midjourney.hf.space/",
         "api_name": "/run"
@@ -30,12 +34,13 @@ MODEL_URLS = {
 
 # Define custom names for models
 CUSTOM_MODEL_NAMES = {
+    "FLUX.1-schnell": "Hybrid Arc",
     "midjourney": "Photorealism",
     "stable-diffusion-3-medium": "Base SD Medium",
     # Add more custom names as needed
 }
 
-IMAGE_MODELS = {"midjourney", "stable-diffusion-3-medium"}  # Add all image model keys here
+IMAGE_MODELS = {"FLUX.1-schnell", "midjourney", "stable-diffusion-3-medium"}  # Add all image model keys here
 
 # Initialize the Telegram bot
 class GradioTelegramBot:
@@ -86,14 +91,16 @@ class GradioTelegramBot:
         current_model_info = self.model_urls[self.current_model_key]
 
         if not current_client:
-            logger.error(f"Client for model {self.current_model_key} is not available.")
+            logger.error(
+                f"Client for model {self.current_model_key} is not available.")
             return None
 
         try:
             if self.current_model_key == "midjourney":
                 result = current_client.predict(
                     prompt=prompt,
-                    negative_prompt="(deformed, distorted, disfigured:1.3), semi-realistic, cgi, 3d, render, sketch, cartoon, drawing, anime:1.4), poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, (mutated hands and fingers:1.4), disconnected limbs, mutation, mutated, ugly, disgusting, blurry, amputation",
+                    negative_prompt=
+                    "(deformed, distorted, disfigured:1.3), semi-realistic, cgi, 3d, render, sketch, cartoon, drawing, anime:1.4), poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, (mutated hands and fingers:1.4), disconnected limbs, mutation, mutated, ugly, disgusting, blurry, amputation",
                     use_negative_prompt=True,
                     style="2560 x 1440",
                     seed=0,
@@ -101,39 +108,55 @@ class GradioTelegramBot:
                     height=1024,
                     guidance_scale=6,
                     randomize_seed=True,
-                    api_name=current_model_info["api_name"]
-                )
+                    api_name=current_model_info["api_name"])
             elif self.current_model_key == "stable-diffusion-3-medium":
                 result = current_client.predict(
                     prompt=prompt,
-                    negative_prompt="(deformed, distorted, disfigured:1.3), poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, (mutated hands and fingers:1.4), disconnected limbs, mutation, mutated, ugly, disgusting, blurry, amputation",
+                    negative_prompt=
+                    "(deformed, distorted, disfigured:1.3), poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, (mutated hands and fingers:1.4), disconnected limbs, mutation, mutated, ugly, disgusting, blurry, amputation",
                     seed=0,
                     randomize_seed=True,
                     width=1024,
                     height=1024,
                     guidance_scale=5,
                     num_inference_steps=28,
-                    api_name=current_model_info["api_name"]
-                )
+                    api_name=current_model_info["api_name"])
+            elif self.current_model_key == "FLUX.1-schnell":
+                result = current_client.predict(
+                    prompt=prompt,
+                    seed=0,
+                    randomize_seed=True,
+                    width=1024,
+                    height=1024,
+                    num_inference_steps=4,
+                    api_name=current_model_info["api_name"])
             else:
-                raise ValueError(f"Unsupported model: {self.current_model_key}")
+                raise ValueError(
+                    f"Unsupported model: {self.current_model_key}")
 
             # Process the result based on the model
             if self.current_model_key == "midjourney":
-                if isinstance(result, tuple) and len(result) > 0:
-                    images = result[0]
-                    if images and isinstance(images, list) and len(images) > 0 and 'image' in images[0]:
-                        return images[0]['image']
-            elif self.current_model_key == "stable-diffusion-3-medium":
+                if isinstance(result, tuple) and len(result) > 1:
+                    images = result[1]
+                    if images and isinstance(
+                            images,
+                            list) and len(images) > 1 and 'image' in images[1]:
+                        return images[1]['image']
+            elif self.current_model_key in [
+                    "stable-diffusion-3-medium", "FLUX.1-schnell"
+            ]:
                 if isinstance(result, (list, tuple)) and len(result) > 0:
                     if isinstance(result[0], bytes):
-                        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as temp_file:
+                        with tempfile.NamedTemporaryFile(
+                                delete=False, suffix=".png") as temp_file:
                             temp_file.write(result[0])
                             return temp_file.name
                     elif isinstance(result[0], str):
                         return result[0]
                 else:
-                    logger.error("Unexpected result structure for stable-diffusion-3-medium")
+                    logger.error(
+                        "Unexpected result structure for stable-diffusion-3-medium"
+                    )
                     return None
 
             raise ValueError("Invalid response from API")
