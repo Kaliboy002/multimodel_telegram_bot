@@ -9,8 +9,6 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 from keep_alive import keep_alive
 from gradio_client import Client
 from telebot.types import BotCommand
-from telebot.apihelper import ApiTelegramException
-from requests.exceptions import ReadTimeout, ConnectionError
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -303,7 +301,7 @@ class GradioTelegramBot:
         self.bot.delete_webhook()
         keep_alive()
         logger.info("Starting bot polling...")
-        self.bot.polling(none_stop=True, timeout=60)
+        self.bot.polling()
 
 
 def main():
