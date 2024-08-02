@@ -9,6 +9,7 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 from keep_alive import keep_alive
 from gradio_client import Client
 from telebot.types import BotCommand
+from telebot.apihelper import ApiTelegramException
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -274,11 +275,24 @@ class GradioTelegramBot:
 
             self.request_queue.task_done()
 
-    def run(self):
+     def run(self):
         self.bot.delete_webhook()
         keep_alive()
         logger.info("Starting bot polling...")
-        self.bot.polling()
+        
+        while True:
+            try:
+                self.bot.polling(none_stop=True, interval=0, timeout=60)
+            except ApiTelegramException as e:
+                if e.error_code == 429:
+                    logger.warning(f"Rate limited. Waiting for {e.result.retry_after} seconds.")
+                    time.sleep(e.result.retry_after)
+                else:
+                    logger.error(f"Telegram API error: {e}")
+                    time.sleep(10)
+            except Exception as e:
+                logger.error(f"Unexpected error: {e}")
+                time.sleep(10)
 
 
 def main():
