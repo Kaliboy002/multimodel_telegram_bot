@@ -39,7 +39,9 @@ CUSTOM_MODEL_NAMES = {
     # Add more custom names as needed
 }
 
-IMAGE_MODELS = {"FLUX.1-schnell", "midjourney", "stable-diffusion-3-medium"}  # Add all image model keys here
+IMAGE_MODELS = {"FLUX.1-schnell", "midjourney",
+                "stable-diffusion-3-medium"}  # Add all image model keys here
+
 
 # Initialize the Telegram bot
 class GradioTelegramBot:
@@ -71,7 +73,8 @@ class GradioTelegramBot:
             try:
                 clients[key] = Client(info["url"])
             except Exception as e:
-                logger.error(f"Failed to initialize Gradio client for {key}: {str(e)}")
+                logger.error(
+                    f"Failed to initialize Gradio client for {key}: {str(e)}")
                 clients[key] = None
         return clients
 
@@ -166,7 +169,8 @@ class GradioTelegramBot:
 
     def handle_commands(self, message):
         chat_id = message.chat.id
-        command = message.text.split()[0][1:]  # Get the command without the '/'
+        command = message.text.split()[0][
+            1:]  # Get the command without the '/'
 
         if command == "start":
             response = (
@@ -199,9 +203,11 @@ class GradioTelegramBot:
         markup = InlineKeyboardMarkup()
         for model_key, custom_name in self.custom_model_names.items():
             markup.add(
-                InlineKeyboardButton(custom_name, callback_data=f"switch_model_{model_key}")
-            )
-        self.bot.send_message(chat_id, "Select a model to switch:", reply_markup=markup)
+                InlineKeyboardButton(
+                    custom_name, callback_data=f"switch_model_{model_key}"))
+        self.bot.send_message(chat_id,
+                              "Select a model to switch:",
+                              reply_markup=markup)
 
     def handle_callback_query(self, call):
         if call.data.startswith("switch_model_"):
@@ -209,11 +215,16 @@ class GradioTelegramBot:
             if model_key in self.model_urls:
                 self.current_model_key = model_key
                 custom_name = self.custom_model_names[model_key]
-                self.bot.answer_callback_query(call.id, f"Switched to model: {custom_name}")
-                self.bot.send_message(call.message.chat.id, f"Switched to model: {custom_name}")
+                self.bot.answer_callback_query(
+                    call.id, f"Switched to model: {custom_name}")
+                self.bot.send_message(call.message.chat.id,
+                                      f"Switched to model: {custom_name}")
             else:
-                self.bot.answer_callback_query(call.id, "Model not recognized.")
-        self.bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
+                self.bot.answer_callback_query(call.id,
+                                               "Model not recognized.")
+        self.bot.edit_message_reply_markup(call.message.chat.id,
+                                           call.message.message_id,
+                                           reply_markup=None)
 
     def on_message(self, message):
         chat_id = message.chat.id
@@ -223,7 +234,8 @@ class GradioTelegramBot:
             # In group chats, only respond to messages starting with '/'
             if message.text and message.text.startswith('/'):
                 if message.text.startswith('/generate '):
-                    prompt = message.text[10:]  # Remove '/generate ' from the start
+                    prompt = message.text[
+                        10:]  # Remove '/generate ' from the start
                     self.queue_request(chat_id, prompt, message.message_id)
                 else:
                     # Handle other commands if needed
@@ -241,17 +253,16 @@ class GradioTelegramBot:
         processing_message = self.bot.send_message(
             chat_id,
             "Your request has been queued. Please wait...",
-            reply_to_message_id=message_id
-        )
+            reply_to_message_id=message_id)
 
         # Add the request to the queue
         self.request_queue.put(
-            (chat_id, prompt, message_id, processing_message.message_id)
-        )
+            (chat_id, prompt, message_id, processing_message.message_id))
 
     def process_queue(self):
         while True:
-            chat_id, prompt, original_message_id, processing_message_id = self.request_queue.get()
+            chat_id, prompt, original_message_id, processing_message_id = self.request_queue.get(
+            )
 
             try:
                 if self.current_model_key in IMAGE_MODELS:
@@ -264,8 +275,7 @@ class GradioTelegramBot:
                             self.bot.send_photo(
                                 chat_id,
                                 image,
-                                reply_to_message_id=original_message_id
-                            )
+                                reply_to_message_id=original_message_id)
                         # If it's a temporary file, delete it after sending
                         if image_path.startswith(tempfile.gettempdir()):
                             os.remove(image_path)
@@ -273,21 +283,18 @@ class GradioTelegramBot:
                         self.bot.send_message(
                             chat_id,
                             "Sorry, I couldn't generate an image at the moment. You have exceeded your GPU Quota Please try again after 5 minutes or use other models. We are currently experiencing overload. To see Other models list use /model command",
-                            reply_to_message_id=original_message_id
-                        )
+                            reply_to_message_id=original_message_id)
                 else:
                     self.bot.send_message(
                         chat_id,
                         "Sorry, I couldn't generate a response.",
-                        reply_to_message_id=original_message_id
-                    )
+                        reply_to_message_id=original_message_id)
             except Exception as e:
                 logger.error(f"Error in process_queue: {str(e)}")
                 self.bot.send_message(
                     chat_id,
                     "I'm having trouble processing your request. Please try again later.",
-                    reply_to_message_id=original_message_id
-                )
+                    reply_to_message_id=original_message_id)
             finally:
                 # Delete the "Processing" message
                 self.bot.delete_message(chat_id, processing_message_id)
@@ -297,7 +304,7 @@ class GradioTelegramBot:
 
             self.request_queue.task_done()
 
-     def run(self):
+    def run(self):
         self.bot.delete_webhook()
         keep_alive()
         logger.info("Starting bot polling...")
